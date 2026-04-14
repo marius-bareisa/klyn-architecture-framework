@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- General -->
+    <string name="shared_label_app_name">KlynAF</string>
+    <string name="nav_label_home">Home</string>
+    <string name="nav_label_search">Search</string>
+    <string name="nav_label_watchlist">Watchlist</string>
+    <string name="core_error_unknown">Unknown error</string>
+    <string name="core_retry">Retry</string>
+    <string name="core_error_unauthorized">Unauthorized. Please check your API key.</string>
+    <string name="core_error_not_found">The requested resource was not found.</string>
+    <string name="core_error_server">Server error (%1$d). Please try again later.</string>
+    <string name="core_error_network">Network error. Check your connection and try again.</string>
+    <string name="core_error_http">Unexpected error (HTTP %1$d).</string>
+    
+    <!-- Detail Screen -->
+    <string name="detail_button_add_watchlist">Add to watchlist</string>
+    <string name="detail_button_remove_watchlist">Remove from watchlist</string>
+    <string name="detail_desc_backdrop_format">Backdrop for %1$s</string>
+    <string name="detail_title_cast">Cast</string>
+    <string name="detail_title_trailers">Trailers</string>
+    <string name="detail_title_similar">Similar</string>
+    <string name="detail_label_not_available">Not available</string>
+    <string name="detail_snackbar_added_watchlist">Added to Watchlist</string>
+    <string name="detail_snackbar_removed_watchlist">Removed from Watchlist</string>
+    
+    <!-- Home Screen -->
+    <string name="home_title_trending">Trending</string>
+    <string name="home_title_popular_movies">Popular Movies</string>
+    <string name="home_title_popular_tv">Popular TV</string>
+    <string name="home_title_top_rated_movies">Top Rated Movies</string>
+    <string name="home_title_top_rated_tv">Top Rated TV</string>
+    
+    <!-- Search Screen -->
+    <string name="search_label_input_placeholder">Search movies and TV shows</string>
+    <string name="search_action_clear">Clear</string>
+    <string name="search_label_no_results_format">No results for \"%1$s\"</string>
+    <string name="shared_label_movie">Movie</string>
+    <string name="shared_label_tv_show">TV Show</string>
+    <string name="shared_label_tv">TV</string>
+    <string name="shared_action_view_details">View details</string>
+    
+    <!-- Watchlist Screen -->
+    <string name="watchlist_title_screen">Watchlist</string>
+    <string name="watchlist_message_empty_state">No saved titles yet</string>
+    <string name="watchlist_action_remove">Remove</string>
+</resources>
