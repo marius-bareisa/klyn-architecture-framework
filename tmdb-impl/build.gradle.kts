@@ -47,10 +47,4 @@ dependencies {
     ksp(libs.moshi.codegen)
 
     testImplementation(project(":testutils"))
-    testImplementation(libs.junit.jupiter.api)
-    testImplementation(libs.mockk)
-    testImplementation(libs.coroutines.test)
-    testImplementation(libs.turbine)
-    testRuntimeOnly(libs.junit.jupiter.engine)
-    testRuntimeOnly(libs.junit.platform.launcher)
 }

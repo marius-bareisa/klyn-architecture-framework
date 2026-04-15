@@ -55,12 +55,14 @@ Open the project in Android Studio or use the command line:
 ./gradlew test
 
 # Run tests for a specific module
+./gradlew :core:test
 ./gradlew :feature-detail:test
 ./gradlew :feature-home:test
 ./gradlew :feature-search:test
 ./gradlew :feature-watchlist:test
 ./gradlew :tmdb-impl:test
 ./gradlew :database-impl:test
+./gradlew :movie-storage:test
 ./gradlew :uicore:test
 ```
 
