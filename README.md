@@ -60,6 +60,7 @@ Open the project in Android Studio or use the command line:
 ./gradlew :feature-search:test
 ./gradlew :feature-watchlist:test
 ./gradlew :tmdb-impl:test
+./gradlew :database-impl:test
 ./gradlew :uicore:test
 ```
 
