@@ -9,7 +9,7 @@ import com.klynaf.core.domain.source.remote.MovieRemoteDataSource
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
-class MovieRepositoryImpl @Inject constructor(
+internal class MovieRepositoryImpl @Inject constructor(
     private val remoteDataSource: MovieRemoteDataSource,
 ) : MovieRepository {
 

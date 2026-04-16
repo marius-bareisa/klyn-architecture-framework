@@ -7,7 +7,7 @@ import com.klynaf.core.domain.source.remote.SearchRemoteDataSource
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
-class SearchRepositoryImpl @Inject constructor(
+internal class SearchRepositoryImpl @Inject constructor(
     private val remoteDataSource: SearchRemoteDataSource,
 ) : SearchRepository {
 

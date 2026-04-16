@@ -9,7 +9,7 @@ import com.klynaf.core.domain.source.remote.TvRemoteDataSource
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
-class TvRepositoryImpl @Inject constructor(
+internal class TvRepositoryImpl @Inject constructor(
     private val remoteDataSource: TvRemoteDataSource,
 ) : TvRepository {
 

@@ -7,7 +7,7 @@ import com.klynaf.core.domain.source.local.WatchlistLocalDataSource
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
-class WatchlistRepositoryImpl @Inject constructor(
+internal class WatchlistRepositoryImpl @Inject constructor(
     private val localDataSource: WatchlistLocalDataSource,
 ) : WatchlistRepository {
 
