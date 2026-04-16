@@ -20,7 +20,7 @@ class MovieRemoteDataSourceImpl @Inject constructor(
         fetchFlow({ movieService.getPopular(page) }) { it.results.map { dto -> dto.toDomain() } }
 
     override fun getTrendingMovies(page: Int): Flow<Result<List<Movie>>> =
-        fetchFlow({ movieService.getTrending() }) { it.results.map { dto -> dto.toDomain() } }
+        fetchFlow({ movieService.getTrending(page = page) }) { it.results.map { dto -> dto.toDomain() } }
 
     override fun getTopRatedMovies(page: Int): Flow<Result<List<Movie>>> =
         fetchFlow({ movieService.getTopRated(page) }) { it.results.map { dto -> dto.toDomain() } }

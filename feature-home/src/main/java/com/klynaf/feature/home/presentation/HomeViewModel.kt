@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.klynaf.core.domain.util.Result
 import com.klynaf.core.domain.util.mapResult
 import com.klynaf.feature.home.domain.usecase.HomeUseCases
+import com.klynaf.uicore.model.MediaCardUiModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -25,6 +26,10 @@ class HomeViewModel @Inject constructor(
     private val mapper: HomeUiModelMapper,
 ) : ViewModel() {
 
+    companion object {
+        internal const val LOAD_MORE_THRESHOLD = 3
+    }
+
     private val _state = MutableStateFlow(HomeState())
     val state: StateFlow<HomeState> = _state.asStateFlow()
 
@@ -32,101 +37,143 @@ class HomeViewModel @Inject constructor(
     val navEvents: SharedFlow<HomeNavEvent> = _navEvents.asSharedFlow()
 
     init {
-        loadContent(categories = HomeCategory.entries, isRefresh = false)
+        loadAllCategories(isRefresh = false)
     }
 
     fun onRefresh() {
         if (_state.value.isRefreshing || _state.value.isAnySectionLoading) return
-
-        _state.update { it.clearErrorsForRefresh() }
-
-        loadContent(categories = HomeCategory.entries, isRefresh = true)
+        _state.update { it.forRefresh() }
+        loadAllCategories(isRefresh = true)
     }
 
     fun onRetry(category: HomeCategory) {
-        if (_state.value.isRefreshing) return
-        loadContent(categories = listOf(category), isRefresh = false)
+        when (val section = _state.value.sectionFor(category)) {
+            is SectionState.Loading -> return
+            is SectionState.Error -> viewModelScope.launch { loadPage(category, page = 1) }
+            is SectionState.Success -> viewModelScope.launch {
+                loadPage(
+                    category,
+                    page = section.page + 1
+                )
+            }
+        }
+    }
+
+    fun onScrollPositionChanged(category: HomeCategory, lastVisibleIndex: Int, totalItems: Int) {
+        if (totalItems > LOAD_MORE_THRESHOLD && lastVisibleIndex >= totalItems - LOAD_MORE_THRESHOLD) {
+            loadMoreIfReady(category)
+        }
+    }
+
+    private fun loadMoreIfReady(category: HomeCategory) {
+        val section = _state.value.sectionFor(category)
+        if (section !is SectionState.Success) return
+        if (section.loadMoreState is LoadMoreState.Loading || section.hasReachedEnd) return
+        viewModelScope.launch { loadPage(category, page = section.page + 1) }
     }
 
     fun onItemClicked(mediaId: Int, mediaTypeRoute: String) {
         viewModelScope.launch {
-            _navEvents.emit(
-                HomeNavEvent.NavigateToDetail(
-                    mediaId,
-                    mediaTypeRoute
-                )
-            )
+            _navEvents.emit(HomeNavEvent.NavigateToDetail(mediaId, mediaTypeRoute))
         }
     }
 
-    private fun loadContent(categories: List<HomeCategory>, isRefresh: Boolean) {
+    private fun loadAllCategories(isRefresh: Boolean) {
         viewModelScope.launch {
-            val jobs = categories.map { category ->
-                launch {
-                    when (category) {
-                        HomeCategory.TRENDING -> fetchSection(
-                            flow = useCases.getTrendingMovies(page = 1).map { result ->
-                                result.mapResult { list -> list.map { mapper.mapMovie(it) } }
-                            },
-                            isRefresh = isRefresh,
-                            stateUpdater = { state, res -> state.copy(trending = res) }
-                        )
-
-                        HomeCategory.POPULAR_MOVIES -> fetchSection(
-                            flow = useCases.getPopularMovies().map { result ->
-                                result.mapResult { list -> list.map { mapper.mapMovie(it) } }
-                            },
-                            isRefresh = isRefresh,
-                            stateUpdater = { state, res -> state.copy(popularMovies = res) }
-                        )
-
-                        HomeCategory.POPULAR_TV -> fetchSection(
-                            flow = useCases.getPopularTv().map { result ->
-                                result.mapResult { list -> list.map { mapper.mapTvShow(it) } }
-                            },
-                            isRefresh = isRefresh,
-                            stateUpdater = { state, res -> state.copy(popularTv = res) }
-                        )
-
-                        HomeCategory.TOP_RATED_MOVIES -> fetchSection(
-                            flow = useCases.getTopRatedMovies().map { result ->
-                                result.mapResult { list -> list.map { mapper.mapMovie(it) } }
-                            },
-                            isRefresh = isRefresh,
-                            stateUpdater = { state, res -> state.copy(topRatedMovies = res) }
-                        )
-
-                        HomeCategory.TOP_RATED_TV -> fetchSection(
-                            flow = useCases.getTopRatedTv().map { result ->
-                                result.mapResult { list -> list.map { mapper.mapTvShow(it) } }
-                            },
-                            isRefresh = isRefresh,
-                            stateUpdater = { state, res -> state.copy(topRatedTv = res) }
-                        )
-                    }
-                }
+            val jobs = HomeCategory.entries.map { category ->
+                launch { loadPage(category = category, page = 1) }
             }
-
             jobs.joinAll()
-
             if (isRefresh) {
                 _state.update { it.copy(isRefreshing = false) }
             }
         }
     }
 
-    private suspend inline fun <T> fetchSection(
-        flow: Flow<Result<T>>,
-        isRefresh: Boolean,
-        crossinline stateUpdater: (HomeState, Result<T>) -> HomeState
-    ) {
-        if (!isRefresh) {
-            _state.update { stateUpdater(it, Result.Loading) }
+    private suspend fun loadPage(category: HomeCategory, page: Int) {
+        _state.update { state ->
+            state.updateSection(category) { section ->
+                if (page == 1) {
+                    SectionState.Loading
+                } else when (section) {
+                    is SectionState.Success -> section.copy(loadMoreState = LoadMoreState.Loading)
+                    else -> SectionState.Loading
+                }
+            }
         }
 
-        flow.collect { result ->
-            if (isRefresh && result is Result.Loading) return@collect
-            _state.update { stateUpdater(it, result) }
+        flowForCategory(category, page).collect { result ->
+            when (result) {
+                is Result.Loading -> Unit
+                is Result.Success -> {
+                    val newItems = result.data
+                    _state.update { state ->
+                        state.updateSection(category) { section ->
+                            if (page == 1) {
+                                SectionState.Success(
+                                    items = newItems,
+                                    page = 1,
+                                    hasReachedEnd = newItems.isEmpty(),
+                                )
+                            } else when (section) {
+                                is SectionState.Success -> section.copy(
+                                    items = (section.items + newItems).distinctBy { it.uniqueId },
+                                    page = page,
+                                    loadMoreState = LoadMoreState.Idle,
+                                    hasReachedEnd = newItems.isEmpty(),
+                                )
+
+                                else -> SectionState.Success(
+                                    items = newItems,
+                                    page = page,
+                                    hasReachedEnd = newItems.isEmpty(),
+                                )
+                            }
+                        }
+                    }
+                }
+
+                is Result.Error -> {
+                    _state.update { state ->
+                        state.updateSection(category) { section ->
+                            if (page == 1) {
+                                SectionState.Error(result.throwable)
+                            } else when (section) {
+                                is SectionState.Success -> section.copy(
+                                    loadMoreState = LoadMoreState.Error(result.throwable),
+                                )
+
+                                else -> SectionState.Error(result.throwable)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun flowForCategory(
+        category: HomeCategory,
+        page: Int,
+    ): Flow<Result<List<MediaCardUiModel>>> = when (category) {
+        HomeCategory.TRENDING -> useCases.getTrendingMovies(page).map { result ->
+            result.mapResult { list -> list.map { mapper.mapMovie(it) } }
+        }
+
+        HomeCategory.POPULAR_MOVIES -> useCases.getPopularMovies(page).map { result ->
+            result.mapResult { list -> list.map { mapper.mapMovie(it) } }
+        }
+
+        HomeCategory.POPULAR_TV -> useCases.getPopularTv(page).map { result ->
+            result.mapResult { list -> list.map { mapper.mapTvShow(it) } }
+        }
+
+        HomeCategory.TOP_RATED_MOVIES -> useCases.getTopRatedMovies(page).map { result ->
+            result.mapResult { list -> list.map { mapper.mapMovie(it) } }
+        }
+
+        HomeCategory.TOP_RATED_TV -> useCases.getTopRatedTv(page).map { result ->
+            result.mapResult { list -> list.map { mapper.mapTvShow(it) } }
         }
     }
 }

@@ -1,29 +1,64 @@
 package com.klynaf.feature.home.presentation
 
-import com.klynaf.core.domain.util.Result
 import com.klynaf.uicore.model.MediaCardUiModel
 
+sealed interface LoadMoreState {
+    data object Idle : LoadMoreState
+    data object Loading : LoadMoreState
+    data class Error(val throwable: Throwable) : LoadMoreState
+}
+
+sealed interface SectionState {
+    data object Loading : SectionState
+    data class Error(val throwable: Throwable) : SectionState
+    data class Success(
+        val items: List<MediaCardUiModel>,
+        val page: Int,
+        val loadMoreState: LoadMoreState = LoadMoreState.Idle,
+        val hasReachedEnd: Boolean = false,
+    ) : SectionState
+}
+
 data class HomeState(
-    val trending: Result<List<MediaCardUiModel>> = Result.Loading,
-    val popularMovies: Result<List<MediaCardUiModel>> = Result.Loading,
-    val popularTv: Result<List<MediaCardUiModel>> = Result.Loading,
-    val topRatedMovies: Result<List<MediaCardUiModel>> = Result.Loading,
-    val topRatedTv: Result<List<MediaCardUiModel>> = Result.Loading,
+    val trending: SectionState = SectionState.Loading,
+    val popularMovies: SectionState = SectionState.Loading,
+    val popularTv: SectionState = SectionState.Loading,
+    val topRatedMovies: SectionState = SectionState.Loading,
+    val topRatedTv: SectionState = SectionState.Loading,
     val isRefreshing: Boolean = false,
 ) {
     val isAnySectionLoading: Boolean
-        get() = trending is Result.Loading ||
-                popularMovies is Result.Loading ||
-                popularTv is Result.Loading ||
-                topRatedMovies is Result.Loading ||
-                topRatedTv is Result.Loading
+        get() = trending is SectionState.Loading ||
+                popularMovies is SectionState.Loading ||
+                popularTv is SectionState.Loading ||
+                topRatedMovies is SectionState.Loading ||
+                topRatedTv is SectionState.Loading
 }
 
-internal fun HomeState.clearErrorsForRefresh(): HomeState = this.copy(
+internal fun HomeState.forRefresh(): HomeState = copy(
     isRefreshing = true,
-    trending = if (this.trending is Result.Error) Result.Loading else this.trending,
-    popularMovies = if (this.popularMovies is Result.Error) Result.Loading else this.popularMovies,
-    popularTv = if (this.popularTv is Result.Error) Result.Loading else this.popularTv,
-    topRatedMovies = if (this.topRatedMovies is Result.Error) Result.Loading else this.topRatedMovies,
-    topRatedTv = if (this.topRatedTv is Result.Error) Result.Loading else this.topRatedTv
+    trending = SectionState.Loading,
+    popularMovies = SectionState.Loading,
+    popularTv = SectionState.Loading,
+    topRatedMovies = SectionState.Loading,
+    topRatedTv = SectionState.Loading,
 )
+
+internal fun HomeState.sectionFor(category: HomeCategory): SectionState = when (category) {
+    HomeCategory.TRENDING -> trending
+    HomeCategory.POPULAR_MOVIES -> popularMovies
+    HomeCategory.POPULAR_TV -> popularTv
+    HomeCategory.TOP_RATED_MOVIES -> topRatedMovies
+    HomeCategory.TOP_RATED_TV -> topRatedTv
+}
+
+internal fun HomeState.updateSection(
+    category: HomeCategory,
+    transform: (SectionState) -> SectionState,
+): HomeState = when (category) {
+    HomeCategory.TRENDING -> copy(trending = transform(trending))
+    HomeCategory.POPULAR_MOVIES -> copy(popularMovies = transform(popularMovies))
+    HomeCategory.POPULAR_TV -> copy(popularTv = transform(popularTv))
+    HomeCategory.TOP_RATED_MOVIES -> copy(topRatedMovies = transform(topRatedMovies))
+    HomeCategory.TOP_RATED_TV -> copy(topRatedTv = transform(topRatedTv))
+}

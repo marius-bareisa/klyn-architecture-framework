@@ -3,8 +3,8 @@ package com.klynaf.tmdb.impl.repository
 import com.klynaf.core.domain.model.Cast
 import com.klynaf.core.domain.model.Trailer
 import com.klynaf.core.domain.model.TvShow
-import com.klynaf.core.domain.util.Result
 import com.klynaf.core.domain.source.remote.TvRemoteDataSource
+import com.klynaf.core.domain.util.Result
 import com.klynaf.tmdb.api.service.TmdbTvService
 import com.klynaf.tmdb.impl.mapper.toDomain
 import com.klynaf.tmdb.impl.mapper.toDomainOrNull
@@ -20,7 +20,7 @@ class TvRemoteDataSourceImpl @Inject constructor(
         fetchFlow({ tvService.getPopular(page) }) { it.results.map { dto -> dto.toDomain() } }
 
     override fun getTrendingTv(page: Int): Flow<Result<List<TvShow>>> =
-        fetchFlow({ tvService.getTrending() }) { it.results.map { dto -> dto.toDomain() } }
+        fetchFlow({ tvService.getTrending(page = page) }) { it.results.map { dto -> dto.toDomain() } }
 
     override fun getTopRatedTv(page: Int): Flow<Result<List<TvShow>>> =
         fetchFlow({ tvService.getTopRated(page) }) { it.results.map { dto -> dto.toDomain() } }
